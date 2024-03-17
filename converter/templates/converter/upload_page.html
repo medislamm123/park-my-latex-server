@@ -1,52 +1,104 @@
-<!DOCTYPE html>
-<html lang="en">
+<html lang="en-us">
+
 <head>
     <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <!-- Make sure to load the highlight.js CSS file before the Diff2Html CSS file -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.7.1/styles/github.min.css" />
+    <link rel="stylesheet" type="text/css"
+        href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html-ui.min.js"></script>
     <title>File Converter</title>
 </head>
-<body>
-
-<h2>Upload your file for conversion</h2>
-<form id="uploadForm">
-    <input type="file" id="fileInput" name="myfile" required>
-    <button type="submit">Upload File</button>
-</form>
-<h2>Choose the modification degree</h2>
-  <select name="Modification" id="modification">
-    <option value="correct-only">correct only</option>
-    <option value="correct-with-minor-changes">correct with minor changes</option>
-    <option value="auto">auto</option>
-  </select>
-  
-
-<button id="downloadBtn" style="display:none;">Download Converted File</button>
-
 <script>
-document.getElementById('uploadForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    const fileInput = document.getElementById('fileInput');
-    const modificationDegree = document.getElementById('modification');
-    formData.append("myfile", fileInput.files[0]);
-    formData.append("modificationdegree", modificationDegree.value);
+    let diffString = "";
 
-    const response = await fetch('/converter/upload/', {
-        method: 'POST',
-        body: formData,
-    });
-
-    if (response.ok) {
-        const result = await response.json();
-        document.getElementById('downloadBtn').style.display = 'block';
-        document.getElementById('downloadBtn').onclick = () => {
-            window.location.href = result.download_url;
+    document.addEventListener('DOMContentLoaded', function () {
+        var targetElement = document.getElementById('myDiffElement');
+        var configuration = {
+            drawFileList: true,
+            fileListToggle: false,
+            fileListStartVisible: false,
+            fileContentToggle: false,
+            matching: 'lines',
+            outputFormat: 'side-by-side',
+            synchronisedScroll: true,
+            highlight: true,
+            renderNothingWhenEmpty: false,
         };
-    } else {
-        alert("File conversion failed.");
-    }
-};
+        var diff2htmlUi = new Diff2HtmlUI(targetElement, diffString, configuration);
+        diff2htmlUi.draw();
+        diff2htmlUi.highlightCode();
+    });
 </script>
 
-</body>
-</html>
+<body>
 
+    <h2>Upload your file for conversion</h2>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" name="myfile" required>
+        <select name="Modification" id="modification">
+            <option value="correct-only">correct only</option>
+            <option value="correct-with-minor-changes">correct with minor changes</option>
+            <option value="auto">auto</option>
+        </select>
+        <button type="submit">Upload File</button>
+    </form>
+
+    <button id="downloadBtn" style="display:none;">Download Converted File</button>
+    <div id="myDiffElement"></div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+            const modificationDegree = document.getElementById('modification');
+            formData.append("myfile", fileInput.files[0]);
+            formData.append("modificationdegree", modificationDegree.value);
+
+            const response = await fetch('/converter/upload/', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                document.getElementById('downloadBtn').style.display = 'block';
+                document.getElementById('downloadBtn').onclick = () => {
+                    window.location.href = result.download_url;
+                };
+                diffString = result.diff;
+
+                // Clear existing content of myDiffElement
+                const myDiffElement = document.getElementById('myDiffElement');
+                while (myDiffElement.firstChild) {
+                    myDiffElement.removeChild(myDiffElement.firstChild);
+                }
+
+                // Redraw myDiffElement with the updated diffString
+                var configuration = {
+                    drawFileList: true,
+                    fileListToggle: false,
+                    fileListStartVisible: false,
+                    fileContentToggle: false,
+                    matching: 'lines',
+                    outputFormat: 'side-by-side',
+                    synchronisedScroll: true,
+                    highlight: true,
+                    renderNothingWhenEmpty: false,
+                };
+                var diff2htmlUi = new Diff2HtmlUI(myDiffElement, diffString, configuration);
+                diff2htmlUi.draw();
+                diff2htmlUi.highlightCode();
+                alert(diffString);
+            } else {
+                alert("File conversion failed.");
+            }
+        };
+    </script>
+
+
+</body>
+
+</html>

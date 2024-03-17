@@ -2,9 +2,10 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from django.core.files.storage import FileSystemStorage
-from django.http import FileResponse, Http404
+from django.http import FileResponse, HttpResponse, Http404
 from django.conf import settings
 from django.shortcuts import render
+import difflib
 
 
 import subprocess
@@ -19,10 +20,18 @@ def convert_file(request):
         fs = FileSystemStorage()
         file_name = myfile.name
         upload_file_path_relative = "input/" + file_name
-        randomized_upload_file_path_relative = fs.save(upload_file_path_relative, myfile)
+        randomized_upload_file_path_relative = fs.save(
+            upload_file_path_relative, myfile
+        )
         uploaded_file_path = settings.MEDIA_ROOT / randomized_upload_file_path_relative
-        output_file_path_relative = Path(randomized_upload_file_path_relative).parent.parent / ("output/" + Path(randomized_upload_file_path_relative).name.replace(
-            ".tex", "_converted.tex"))
+        output_file_path_relative = Path(
+            randomized_upload_file_path_relative
+        ).parent.parent / (
+            "output/"
+            + Path(randomized_upload_file_path_relative).name.replace(
+                ".tex", "_converted.tex"
+            )
+        )
         output_file_path = settings.MEDIA_ROOT / output_file_path_relative
         modification_degree = request.POST.get("modificationdegree")
 
@@ -37,7 +46,8 @@ def convert_file(request):
         # Print the command list or convert it to a string for clearer visualization
         print("Executing command:", " ".join(command))
 
-        subprocess.run(command,
+        subprocess.run(
+            command,
             check=True,
         )
 
@@ -47,11 +57,14 @@ def convert_file(request):
             + str(output_file_path_relative)
         )
 
+        diffstring = show_file_diff(uploaded_file_path, output_file_path)
+
         # Return a response, such as a direct download or a URL to the file
         return JsonResponse(
             {
                 "message": "File converted successfully",
                 "download_url": download_url,
+                "diff": diffstring,
             }
         )
     else:
@@ -84,4 +97,19 @@ def download_view(request):
 
 
 def upload_page(request):
-    return render(request, 'converter/upload_page.html')
+    return render(request, "converter/upload_page.html")
+
+
+def show_file_diff(file_path1, file_path2):
+    # Read the contents of the files
+    with open(file_path1, "r") as file1:
+        file1_content = file1.readlines()
+    with open(file_path2, "r") as file2:
+        file2_content = file2.readlines()
+
+    # Compute the difference between the files
+    diff = difflib.unified_diff(
+        file1_content, file2_content, fromfile=file_path1.name, tofile=file_path2.name
+    )
+
+    return "".join(list(diff))
