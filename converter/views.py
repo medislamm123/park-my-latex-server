@@ -19,11 +19,13 @@ def convert_file(request):
         myfile = request.FILES["myfile"]
         fs = FileSystemStorage()
         file_name = myfile.name
+        Path.mkdir(settings.MEDIA_ROOT / "input", exist_ok=True)
         upload_file_path_relative = "input/" + file_name
         randomized_upload_file_path_relative = fs.save(
             upload_file_path_relative, myfile
         )
         uploaded_file_path = settings.MEDIA_ROOT / randomized_upload_file_path_relative
+        Path.mkdir(settings.MEDIA_ROOT / "output", exist_ok=True)
         output_file_path_relative = Path(
             randomized_upload_file_path_relative
         ).parent.parent / (
