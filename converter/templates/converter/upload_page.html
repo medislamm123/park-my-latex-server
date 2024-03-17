@@ -11,6 +11,13 @@
     <input type="file" id="fileInput" name="myfile" required>
     <button type="submit">Upload File</button>
 </form>
+<h2>Choose the modification degree</h2>
+  <select name="Modification" id="modification">
+    <option value="correct-only">correct only</option>
+    <option value="correct-with-minor-changes">correct with minor changes</option>
+    <option value="auto">auto</option>
+  </select>
+  
 
 <button id="downloadBtn" style="display:none;">Download Converted File</button>
 
@@ -19,9 +26,11 @@ document.getElementById('uploadForm').onsubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
     const fileInput = document.getElementById('fileInput');
+    const modificationDegree = document.getElementById('modification');
     formData.append("myfile", fileInput.files[0]);
+    formData.append("modificationdegree", modificationDegree.value);
 
-    const response = await fetch('/converter/upload/', { // Adjust URL if necessary
+    const response = await fetch('/converter/upload/', {
         method: 'POST',
         body: formData,
     });

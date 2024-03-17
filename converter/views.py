@@ -17,23 +17,27 @@ def convert_file(request):
         # Example of handling file upload and conversion
         myfile = request.FILES["myfile"]
         fs = FileSystemStorage()
-        filename = fs.save(myfile.name, myfile)
-        uploaded_file_path = fs.path(filename)
+        file_name = myfile.name
+        upload_file_path_relative = "input/" + file_name
+        randomized_upload_file_path_relative = fs.save(upload_file_path_relative, myfile)
+        uploaded_file_path = settings.MEDIA_ROOT / randomized_upload_file_path_relative
+        output_file_path_relative = Path(randomized_upload_file_path_relative).parent.parent / ("output/" + Path(randomized_upload_file_path_relative).name.replace(
+            ".tex", "_converted.tex"))
+        output_file_path = settings.MEDIA_ROOT / output_file_path_relative
+        modification_degree = request.POST.get("modificationdegree")
 
-        output_file_path = settings.MEDIA_ROOT / filename.replace(
-            ".tex", "_converted.tex"
-        )  # Assuming the output is a .tex file
-        output_file_path_relative = output_file_path.relative_to(
-            Path(settings.MEDIA_ROOT)
-        )
-        subprocess.run(
-            [
-                "parkmylatex",
-                uploaded_file_path,
-                output_file_path,
-                "--degree",
-                "corrections-only",
-            ],
+        command = [
+            "parkmylatex",
+            str(uploaded_file_path),
+            str(output_file_path),
+            "--degree",
+            modification_degree,
+        ]
+
+        # Print the command list or convert it to a string for clearer visualization
+        print("Executing command:", " ".join(command))
+
+        subprocess.run(command,
             check=True,
         )
 
@@ -69,7 +73,7 @@ def download_view(request):
     # Security check: Ensure the file is within MEDIA_ROOT to prevent directory traversal
     if (
         not full_file_path.is_file()
-        or full_file_path.resolve().parent != Path(settings.MEDIA_ROOT).resolve()
+        or full_file_path.resolve().parent.parent != Path(settings.MEDIA_ROOT).resolve()
     ):
         raise Http404("Invalid file path.")
 
